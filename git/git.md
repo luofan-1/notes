@@ -271,36 +271,166 @@ git rm {file} # 在工作区和暂存区中的文件都被删除
 
    > **Tip: **关于 SSH
    >
+   > ```AIGC
    > SSH（Secure Shell，安全外壳协议）是一种用于加密远程登录和安全网络服务的协议，通过加密和认证机制保护数据传输安全。
-   >
+   > 
    > 核心功能：
-   > SSH主要用于加密本地机器与远程服务器之间的通信，确保数据在传输过程中不被窃取或篡改。它替代了不安全的Telnet协议，广泛应用于服务器管理、文件传输等场景。 ‌
-   >
+   > SSH主要用于加密本地机器与远程服务器之间的通信，确保数据在传输过程中不被窃取或篡改。它替代了不安全的Telnet协议，广泛应用于服务器管理、文件传输等场景。
+   > 
    > 工作原理：
    > SSH基于C/S架构，交互流程包括：
-   >
+   > 
    > 建立连接：客户端与服务器握手。
    > 版本号协商：确定协议版本。
    > **密钥交换**：生成加密密钥。
    > **用户认证**：通过密码或密钥验证身份。
    > 会话交互：加密传输命令和数据。
    > 会话关闭：断开连接
+   > ```
+   >
+   > 以上内容由AI生成
+   >
+   > 
+   >
+   > 总结：SSH 是一种 **<u><span title="就像是HTTPS、HTTP那样的东西，表示连接不同操作系统与硬件体系结构的网络通用语言">网络通信协议</span></u>**，它的特点就是 **一次配置，免输凭证，操作高效**，只需要以下步骤就可以实现长期连接而不需要发送密码或令牌：
+   >
+   > - 本地生成公钥 + 私钥
+   >
+   > -  公钥上传到 GitHub
+   > -  后续操作自动用私钥验证，无需输密码 / 令牌
+   >
+   > 
+   >
+   > 就是说，SSH 本身和 GitHub 并没有什么关系，只是 GitHub 提供了通过 SSH 协议来访问的方式
+   >
+   > 在本地计算机中，一般有一个 .ssh 文件夹，用于存储该计算机在通过 SSH 协议访问网络时的密钥
+   >
+   > 这个文件夹一般在系统盘的用户目录下，即 `C:\Users\{系统登录的用户名}`下，就是 git bash 里的 `~` 目录
+   >
+   > `.ssh` 文件夹中一般存有 `密钥名` `密钥名.pub` 和 `config` 三种文件
+   >
+   > - `密钥名.pub` 文件：含生成的公钥，一般需要复制到要访问的网站上，如 Github
+   > - `密钥名` 文件：含生成的私钥，由于访问网站时验证自己是公钥的持有者，泄露有风险，禁止泄露
+   > - `config` 文件：用于配置 SSH 协议访问不同网站时所用的密钥以及端口等信息
+   >
+   > 
+   >
+   > SSH 协议访问时分为以下几步：
+   >
+   > 1. 身份请求：向服务器发送「登录请求」，并告知：「我持有对应公钥的私钥，请求验证」
+   > 2. 加密挑战：服务器生成一个「随机字符串」，用该公钥对其加密（只有对应的私钥能解密），然后将加密后的字符串发送给本地机器
+   > 3. 解密响应：本地机器用自己的私钥解密该字符串，得到原始随机字符串，再将原始字符串发送回服务器
 
-1. github 创建仓库
+   创建 SSH 密钥的方法：
+
+   ```bash
+   cd ~/.ssh # 移动到 .ssh 文件夹
+   
+   # ssh-keygen 是 Git 自带的一个 ssh 密钥生成工具
+   # -t [加密模式] 一般选用 rsa 或 ed25519
+   # -b [长度] 4096 就行，一般不加用默认的也行
+   # -C "[用户]" 不加也行，只是便于分清创建人
+   ssh-keygen -t rsa -b 4096 -C "用户，一般为 GitHub 邮箱"
+   # 执行时首先会出现以下语句：
+   # Generating public/private ed25519 key pair.
+   # Enter file in which to save the key (/c/Users/13403/.ssh/id_ed25519):
+   # 此时是要求输入 ssh 密钥的文件名（密钥名）
+   # 如果是第一次生成，可以之间按 Enter 键，直接采用默认名字，即 "id_加密方式"
+   # 如果不是第一次生成可以选择使用默认名但覆盖掉之前的密钥，或者再自己输入一个密钥名
+   
+   # 然后出现以下语句：
+   # Enter passphrase for "/c/Users/13403/.ssh/id_ed25519" (empty for no passphrase):
+   # 这时要求输入使用该密钥的密码，以后使用密钥时都要先输入密码
+   # 如果不想要设置密码，直接按 Enter 就行
+   # PS：这个密码只是本地设置的使用密钥时用的密码，和网络端（如 Github）没关系，但一般访问网络端要用到密钥时就会提示要求输入密码
+   
+   # 再之后，出现类似以下内容，就生成成功了
+   # Your identification has been saved in /c/Users/13403/.ssh/id_ed25519
+   # Your public key has been saved in /c/Users/13403/.ssh/id_ed25519.pub
+   # The key fingerprint is:
+   # SHA256:Xfr3T4zgpvRASpbMpJuyutxGdembRw5OJKqrouGkeGk 13403@clcwdans
+   # The key's randomart image is:
+   # +--[ED25519 256]--+
+   # |                 |
+   # |                 |
+   # |        ..  .    |
+   # |      o=+o o     |
+   # |     o.=S + .    |
+   # |    o  =+o.o . o |
+   # |.. +. oo.*o + o o|
+   # |*oE..o  +.o= . o |
+   # |B===o    .. .   +|
+   # +----[SHA256]-----+
+   # 此时 .ssh 文件夹中会出现 密钥名（私钥） 和 密钥名.pub（公钥） 文件
+   
+   cat [密钥名].pub
+   # 查看生成的公钥文件，形如：
+   # ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC9eTMu5MHgfXn+dWbN+pSY2PzmRmnlEEu6dqSqOqqKeh7dXyoxMhvvsN1PhCTMw9Z2AOjT4sFe0D44HSjAk5390/8yWGxcyFUB9ctYCJ6T9VY+dCgQeapuv2wxLStiBKp1RGY+V4yTQTYfWcxbWaVwIUgcrBVhyTAtTd9xbVkg4GQ6CR57FiX9bJCC77BsyWSnVy/FN40CiFQpFOXiZjJPWwMfJOg0Z89cAvsvf7xNxgIYFdpmLs8dnFjymRaNCxY2OQMA69kjMeA2oJD8MIgumZ+nZahv7grAH2YU0GgXyLH2gWg3LFYGz/Pv5QS74vE+dA2+rUqe8Kt7fVhACj+Y/bMaGfwZO0OxuOoOiWpFHaHre8dlucPiTfb3HD6rATtzQiNpqcpH0YFvtxC5BlalPsaQlrUvXkkWAnwZwn1tXJeu66CDRYS26QaKw1C7AgRCTMbuTxth6RPkB4qbi20uUpdiA16AjvJqjKIppbsWmK4OpY4Tm6qZl8BHcMSmZHYoP6Z+0wkjqAc1/11oz5eO8Q4nE/GORGVtSEdMQzTnL78Yv08n7HTdcv7J0dADHj0zwzo+2X8cSsLuU9WWmVQ/cXZMwxvbYzqxwUbSwgZ25wA2cIpHwPhMsHChnf6PX23SOmiNbr0ian7+dVVLRIHy6VvOyBF9NCa6FV/7GcvX7w== 13403@clcwdans
+   ```
+
+2. 在 github 上添加 SSH 公钥
+
+   右边头像 -> settings -> Access-SSH and GPG keys -> 输入Title（GitHub上的密钥名称，~~可以随便打一个~~）-> 粘贴自己的 **公钥** -> 输入 Github 账号的密码（这是在给别人访问自己仓库的权限，当然要输密码确定啦）-> 搞定
+
+3. 在本地配置 `config` 文件
+
+   ```config
+   # github
+   Host github.com # 表示此 Host（主机）的别名，下方定义访问该 Host 时的配置
+       # 实际要访问的 Host 名，不加 ssh. 默认从 22 端口访问，加了默认从 443 端口访问
+       HostName ssh.github.com 
+       # 连接这个 Host 时默认使用的登录用户
+       User git
+       # 强制 SSH 客户端优先（或仅）使用「公钥认证」方式完成身份验证，而非密码、键盘交互等其他认证方式
+       PreferredAuthentications publickey
+       # 默认使用的私钥
+       IdentityFile ~/.ssh/id_rsa
+       # 默认端口设置为 443端口
+       Port 443
+   ```
+
+   > **Tip：** 端口问题
+   >
+   > 1. 22 端口一般是主机提供 SSH 服务的端口，而 443 端口提供 HTTPS 服务
+   > 2. `github.com:22` 为 SSH 服务，`github.com:443` 为 HTTPS 服务
+   > 3. `ssh.github.com:22` 和 `ssh.github.com:443` 均提供 SSH 服务
+   > 4. 在校园网、公司网等中由于安全问题，端口 22 一般会被禁用
+   > 5. HostName 那里写 `github.com` 时默认从 22 端口访问，写 `ssh.github.com` 时默认从 443 端口访问
+   >
+   > ~~这个端口问题搞了一天了，不是 refused 就是closed，真是服了~~
+
+   ```bash
+   ssh -T git@github.com # 用于测试是否能连接成功
+   # 如果显示：
+   # Hi [Github 用户名]! You've successfully authenticated, but GitHub does not provide shell access.
+   # 则表示成功
+   # 如果还是 refused 或者 closed 就慢慢调把哈哈
+   ```
+
+4. github 创建仓库
 
    左上角 logo -> 左边绿色按钮 `Create Repository` 
 
    可以看到 github 的提示：
 
    - Quick setup 栏：两种创建模式 `HTTPS` `SSH` 
-     - `HTTPS`：push 时需要验证用户名和密码 （貌似已被停用）
+     - `HTTPS`：push 时需要验证 **用户名和 PAT**
+     
+       > 以前是直接输入 Github 用户名和 Github 密码来访问的
+       >
+       > 但 GitHub 2021 年后已禁用密码登录，用 PAT 替代了密码，以明文形式永久保存在本地文件中
+       >
+       > 
+     
      - `SSH`：不需要验证，但需在 GitHub 上添加 **SSH公钥** 的配置
-
+     
    - 第一栏：本地还没有仓库
+
    - 第二栏：本地已有仓库
+
    - 第三栏：导入其他的仓库 ~~(不知道干嘛用的)~~
 
-2. `SSH` 创建密钥
+5. `SSH` 创建密钥
 
    ```bash
    git clone git@github.com:{...}
@@ -335,16 +465,16 @@ git rm {file} # 在工作区和暂存区中的文件都被删除
    >
    > 表示当访问 GitHub 时，默认使用的密钥
 
-3. 完成上述步骤后，再次 `git clone`，要求输入密码，输入 `test.pub` 中的内容即可
+6. 完成上述步骤后，再次 `git clone`，要求输入密码，输入 `test.pub` 中的内容即可
 
-4. 与远程仓库协同 `git push` 和 `git pull`
+7. 与远程仓库协同 `git push` 和 `git pull`
 
    ```bash
    git pull # 从远程仓库拉取
    git push # 将本地修改推送到远程仓库上
    ```
 
-5. 关联本地仓库和远程仓库
+8. 关联本地仓库和远程仓库
 
    ```bash
    git remote add {shortname} {url}
