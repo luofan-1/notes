@@ -27,6 +27,7 @@
    参数【`"{name}"`】
 
    - 如果 `{name}` 中间没有空格，双引号可省略
+
 2. 保存用户密码
    ```bash
    git config --global credential.helper store
@@ -39,6 +40,15 @@
    ```bash
    git config --global --list
    ```
+
+4. 更改默认分支名
+
+   ```bash
+   # 有的 git 版本中默认分支名仍为 master，为适配 GitHub （默认分支已转为 main），可以将本地分支名改为 main
+   git branch -m main
+   ```
+
+   
 
 以上命令安装后只执行一次即可
 
@@ -418,9 +428,15 @@ git rm {file} # 在工作区和暂存区中的文件都被删除
      
        > 以前是直接输入 Github 用户名和 Github 密码来访问的
        >
-       > 但 GitHub 2021 年后已禁用密码登录，用 PAT 替代了密码，以明文形式永久保存在本地文件中
+       > 但 GitHub 2021 年后已禁用密码登录，用 PAT（Personal Access Token） 替代了密码，以明文形式永久保存在本地文件中
        >
-       > 
+       > 第一部分的 `git config --global credential.helper store` 命令默认保存了访问 Github 的 PAT 等，所以也不用输入，可以通过 可以通过 ` git config --global --unset-all credential.helper` 关掉，但关掉也没用，因为还会有 Windows 自带的 wincred 等帮助存储 ~~（那 HTTPS 不是比 SSH 还要方便~~
+       >
+       > ~~不知道为什么我没有创建 PAT 也能通过 HTTPS 访问，按理来说应该至少要生成一次再存储啊~~
+       >
+       > 额，他好像是会自己生成，在 windows凭据管理器 -> windows凭据 中可以找到，虽然我还是不知道他是啥时候生成的
+       >
+       > 正常的生成 PAT 的流程应该是通过 GitHub 主页 -> settings -> developer settings  -> Personal Access Token 生成
      
      - `SSH`：不需要验证，但需在 GitHub 上添加 **SSH公钥** 的配置
      
@@ -430,76 +446,57 @@ git rm {file} # 在工作区和暂存区中的文件都被删除
 
    - 第三栏：导入其他的仓库 ~~(不知道干嘛用的)~~
 
-5. `SSH` 创建密钥
+5. `git remote add` 添加远程仓库
 
-   ```bash
-   git clone git@github.com:{...}
-   # 后面那一串是 GitHub 上创建时给的（不知到叫什么哈哈哈 SSH url?
-   ```
-
-   此时会提示是否有访问权限，因为还没有设置 **SSH密钥** 
-
-   ```bash
-   cd ~/.ssh
-   # 回到 gitbash 用户根目录下的 .ssh 文件夹
-   ssh-keygen -t rsa -b 4096
-   # 之后输入密钥名称，如未生成过，直接回车即可（使用默认名称）
-   # 再之后会要求设置密码
-   # 生成密钥后会创建两个文件 test（私钥，不要泄露） 和 test.pub（公钥）
-   ```
-
-   将公钥文件的内容放到 GitHub 上
-
-   头像 -> settings -> SSH and GPG keys -> New SSH key -> 粘贴 test.pub 的信息 -> 输入 title -> 创建完成
-
-   > 如果未修改先前默认密钥名称，则已完成操作
-   > 否则需要再创建一个 `config` 配置文件，写入：
-   >
-   > ```config
-   > # github
-   > Host github.com
-   > HostName github.com
-   > PreferredAuthentications publickey
-   > IdentityFile ~/.ssh/{密钥名}
+   > 先说一下 clone：
+   > ```bash
+   > # 从远程克隆，一般在修改或使用远程仓库中代码而本地无该项目版本库时使用
+   > git clone git@github.com:{...}
+   > # 后面那一串是 GitHub 上创建时给的 SSH url
    > ```
-   >
-   > 表示当访问 GitHub 时，默认使用的密钥
+   > 此时若还没配置 SSH 密钥会提示是否有访问权限 
+   > 配置好 SSH 密钥后，再次 `git clone`，要求输入密码，输入 `test.pub` 中的内容即可
 
-6. 完成上述步骤后，再次 `git clone`，要求输入密码，输入 `test.pub` 中的内容即可
+   `git remote` 主要用于有关远程仓库的命令
 
-7. 与远程仓库协同 `git push` 和 `git pull`
+   ```bash
+   # 添加远程仓库
+   git remote add [别名，一般默认叫 origin] [url]
+   # 更改别名的 url
+   git remote set-url [别名，一般默认叫 origin] [url]
+   # 此处的别名是 git 本身用于替代过长的 url 所用的，可随便设一个，但一般叫 origin
+   # url ssh 或者 https 都行，只是之后进行 pull 和 push 时会有所不同
+   # 此时并不会使用到 SSH 密钥，或者 PAT，只有在进行 pull fetch push 等操作时才使用
+   
+   git remote -v
+   # 查看仓库别名和 url
+   ```
+
+6. 与远程仓库同步 `git pull` 和 `git push`
 
    ```bash
    git pull # 从远程仓库拉取
    git push # 将本地修改推送到远程仓库上
+   git fetch # 获取远程修改，但不自动合并
    ```
 
-8. 关联本地仓库和远程仓库
+   用法：
 
    ```bash
-   git remote add {shortname} {url}
-   # origin 为远程仓库的一个默认别名 {shortname}
-   
-   git remote -v
-   # 查看当前仓库的别名和地址
-   
-   # git branch -M main 
-   # 指定分区名称为 main，默认为 main
-   
    git push -u origin main:main
    # 把本地的 main 分支和远程的 main 分支关联起来
    # 分支相同时可写成一个，如
    git push -u origin main
+   # -u 表示绑定分支，以后直接 git push 即可
    
    git pull {远程仓库名}{远程分支名}:{本地分支名}
    git pull # 省略时，默认为 git pull origin main
-   
-   git fetch # 获取远程修改，但不自动合并
+   # 执行这些操作时会要求输入ssh密钥的使用密码（SSH，在配置时添加了密码）或者用户名及PAT（HTTPS）
    ```
 
-   `pull` 会自动合并
-
-   `fetch` 不会自动合并
+   > **Tip：** <font color="red">！本地和远程仓库不同时，一定要先 pull 后 push</font>
+   >
+   > 如果有其他人更修改过代码，一定要先拉取，判断合并是否受影响再推送，GitHub 本身也禁止 “未 pull 先 push” 的行为（好像）
 
 ## 十、`gitee` 和 `GitLab`
 
@@ -523,3 +520,172 @@ git rm {file} # 在工作区和暂存区中的文件都被删除
    - `提交和同步`：git commit 并 pull 和 push
 
    
+
+## 十二、git 分支（branch）
+
+1. 查看分支
+
+   ```bash
+   git branch
+   # 查看当前所有分支
+   
+   # 输出
+   * main
+   # * 表示当前分支
+   ```
+
+2. 创建分支
+
+   ```bash
+   git branch [branch_name]
+   ```
+
+3. 切换分支
+
+   ```bash
+   # 原来通过 checkout 切换
+   git checkout [to_branch]
+   # 但由于 checkout 也被用来删除文件修改，有歧义，git 官方又加入了一个命令
+   git switch [to_branch]
+   ```
+
+4. 合并分支
+
+   ```bash
+   git switch main
+   git merge [branch_to_be_merged]
+   # 将 [branch_to_be_merged] 分支上的内容合并到当前分支上
+   # 要先移动到 main 分支
+   ```
+
+5. 查看分支树
+
+   ```bash
+   git log --graph --oneline --decorate --all
+   ```
+
+6. 删除分支
+
+   ```bash
+   git branch -d [branch_to_be_deleted]
+   # 上面的命令只有在分支被合并之后才能使用
+   
+   git branch -D [branch_to_be_deleted]
+   # 没合并用上面的命令删除
+   ```
+
+## 十三、解决合并冲突
+
+修改了同一行代码后，git 不知道怎么合并，就会出现合并冲突
+
+合并失败后，可通过以下方式查看冲突：
+
+- ```git status```
+- ```git diff```
+
+此时需要自己修改文件，解决冲突，解决后自动完成合并
+
+也可以通过：
+
+```bash
+git merge --abort
+```
+
+来取消该次合并
+
+## 十四、变基（Rebase）
+
+就是 “从公共节点截取 -> 嫁接到当前分支末端” 的过程，很难描述，RT
+
+```mermaid
+graph LR
+	A[<font color="red">main:1</font>]-->B[<font color="red">main:2</font>]-->C[<font color="red">main:3</font>]-->D[<font color="red">main:4</font>]-->E[<font color="red">main:5</font>]
+	C-->F[<font color="blue">dev:1</font>]-->G[<font color="blue">dev:2</font>]-->H[<font color="blue">dev:3</font>]
+```
+
+通过：
+
+```bash
+git switch dev
+git rebase main
+# 把 dev 的 base 改到 main 上
+```
+
+变成：
+
+```mermaid
+graph LR
+	A[<font color="red">main:1</font>]-->B[<font color="red">main:2</font>]-->C[<font color="red">main:3</font>]-->D[<font color="red">main:4</font>]-->E[<font color="red">main:5</font>]
+	E-->F[<font color="blue">dev:1</font>]-->G[<font color="blue">dev:2</font>]-->H[<font color="blue">dev:3</font>]
+```
+
+或者通过：
+
+```bash
+git switch main 
+git rebase dev
+```
+
+变成：
+
+```mermaid
+graph LR
+	A[<font color="red">main:1</font>]-->B[<font color="red">main:2</font>]-->C[<font color="red">main:3</font>]
+	C-->F[<font color="blue">dev:1</font>]-->G[<font color="blue">dev:2</font>]-->H[<font color="blue">dev:3</font>]-->D[<font color="red">main:4</font>]-->E[<font color="red">main:5</font>]
+```
+
+> **Tip：** `merge` 和 `rebase`
+>
+> - `merge` 
+>   - 优点：不会破坏原来分支的提交历史，方便回溯和查看
+>   - 缺点：会产生额外的提交节点，分支图复杂
+> - `rebase`
+>   - 优点：不会新增额外的提交记录，形成线性历史，比较直观
+>   - 缺点：会改变提交历史，一般不在公共分支上使用
+
+## 十五、回退
+
+```bash
+git checkout -b [branch] [commit_id]
+# -b [branch] 表示回退到指定分支的 [commit_id] 提交处
+
+git switch main
+git reset [mod] [commit_id]
+```
+
+## 十六、分支管理和工作流模型
+
+1. **Git Flow 工作流模型：**
+
+   ![GitFlow工作流模型](./images/GitFlow.jpg)
+
+   ![GitFlow2](./images/GitFlow2.png)
+
+   #### 1. master分支
+
+   主分支，产品的功能全部实现后，最终在master分支对外发布。
+
+   #### 2. develop分支
+
+   开发分支，基于master分支克隆，产品的编码工作在此分支进行。
+
+   #### 3. release分支
+
+   测试分支，基于delevop分支克隆，产品编码工作完成后，发布到本分支测试，测试过程中发现的小bug直接在本分支进行修复，修复完成后合并到develop分支。本分支属于临时分支，目的实现后可删除分支。
+
+   #### 4. hotfix分支
+
+   Bug修复分支，基于master分支或发布的里程碑Tag克隆，主要用于修复对外发布的分支，收到客户的Bug反馈后，在此分支进行修复，修复完毕后分别合并到develop分支和master分支。本分支属于临时分支，目的实现后可删除分支。
+
+   #### 5. feature分支
+
+   功能特征分支，基于develop分支克隆，主要用于多人协助开发场景或探索性功能验证场景，功能开发完毕后合并到develop分支。feature分支可创建多个，属于临时分支，目的实现后可删除分支。
+
+2. 版本号（Tag）规则：
+
+   - 主版本（Major Version）：主要的功能变化或重大更新
+   - 此版本（Minor Version）：一些新的功能、改进和更新，通常不会影响现有功能
+   - 修订版本（Patch Version）：一些小的 bug 修复。通常不会更改现有的功能和接口
+
+3. 其他工作流模式
+   - GitHub Flow
