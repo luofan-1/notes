@@ -54,7 +54,7 @@
 2. 远程克隆已有的库
 
    ```bash
-   git clone {仓库位置}
+   git clone {仓库url}
    ```
 
 ## 三、Git 工作区域和文件状态
@@ -98,7 +98,7 @@ graph LR
 	A[<font color="#66CCFF"> 未跟踪（Untrack）</font>]-->|git add|B[<font color="#9370DB">未修改（Unmodified）</font>]
 	B-->|修改文件|C[<font color="#DBDB70">已修改（Modified）</font>]
 	B-->|git rm|A
-	C-->|git check out|B
+	C-->|git checkout|B
 	D-->|git reset|C
 	A-->|git add|D
 	D-->|git commit|B
@@ -109,38 +109,20 @@ graph LR
 
 ```bash
 git status # 查看当前仓库状态
+
 git add {files}
+
 git commit {files} -m "{message}" # 如果不使用 -m，会打开一个交互界面，把修改信息写在第一行
 git commit -a # 添加后提交
 git commit -am "{message}"
 git commit -a # 添加后提交
 git commit -am "{message}"
+
 git log # 查看提交记录
 git log --oneline # 显示更为简洁的提交记录
 ```
 
-> 关于 `git status -s`:
->
-> `git status -s` 是 Git 命令，用于以简短格式显示工作目录和暂存区的状态。文件名前的两个字母表示文件状态，具体含义如下：
->
-> 状态代码说明：
->
-> - A：文件已添加到暂存区（新增文件）
-> - M：文件已修改但未提交
-> - D：文件已删除
-> - R：文件已重命名
-> - C：文件已复制（需配置 status.renames 为 "copy"）
-> - U：文件更新但未合并（如冲突后未解决）
-> - ?：未跟踪的文件（未被 Git 管理）
->
-> ```bash
-> $ git status -s
->  M git.md
-> ?? .gitignore
-> # 状态栏第一列表示暂存区状态，第二列表示工作区状态
-> ```
-
-> 关于 `git status -s`:
+> **Tip: **关于 `git status -s`:
 >
 > `git status -s` 是 Git 命令，用于以简短格式显示工作目录和暂存区的状态。文件名前的两个字母表示文件状态，具体含义如下：
 >
@@ -167,30 +149,13 @@ git log --oneline # 显示更为简洁的提交记录
 git reset --soft {version_id} # 回退到某版本并保留工作区和暂存区的修改内容
 git reset --hard {version_id} # 回退到某版本并删除保留在工作区和暂存区的修改内容
 git reset --mixed {version_id}# 默认，回退到某版本，仅清空暂存区
+
 git ls-files # 查看暂存区内容
 ```
 
-其中，`{version_id}` 处可用 `HEAD^` 表示上一次提交版本
+其中，`{version_id}` 处可用 `HEAD^` 或 `HEAD~` 表示上一次提交版本
 
-> <font color="red">！谨慎使用 `--hard`</font>
-
-但 git 中所有操作均可回溯
-
-```bash
-git reflog # 查看误操作前的版本号，再用 reset 还原即可
-```
-
-## 六、使用 `git diff` 查看差异
-
-```bash
-git diff # 显示工作区和暂存区之间的文件差异
-git diff HEAD # 比较版本库和工作区之间的差异
-git diff --cached # 比较版本库和暂存区
-git diff {version_id1} {version_id2}
-git diff {vid1} {vid2} {file_name} # 查看提交 vid1 和 vid2 中指定文件的差异
-```
-
-> `HEAD~` 与 `HEAD^`
+> **Tip: **`HEAD~` 与 `HEAD^`
 >
 > Git 中，`HEAD^` 和 `HEAD~` 的区别主要在于它们指向的提交对象不同：
 >
@@ -203,6 +168,27 @@ git diff {vid1} {vid2} {file_name} # 查看提交 vid1 和 vid2 中指定文件�
 > - 组合用法
 >   `HEAD~~` 等价于 `HEAD~2`（后退两步）。 ‌
 >   `HEAD^^` 等价于 `HEAD‌:ml-citation{ref="1" data="citationList"}1`（后退两步，但选择第一个父提交）。
+>   ~~（这个等价也是看不懂一点）~~
+
+> **Tip: **<font color="red">！谨慎使用 `--hard`</font>
+> 但 git 中所有操作均可回溯
+>
+> ```bash
+> git reflog # 查看误操作前的版本号，再用 reset 还原即可
+> ```
+
+
+
+## 六、使用 `git diff` 查看差异
+
+```bash
+git diff # 显示工作区和暂存区之间的文件差异
+git diff HEAD # 比较版本库和工作区之间的差异
+git diff --cached # 比较版本库和暂存区
+git diff {version_id1} {version_id2}
+git diff {vid1} {vid2} {file_name} # 查看提交 vid1 和 vid2 中指定文件的差异
+```
+
 
 ## 七、使用 `git rm` 删除文件
 
@@ -276,11 +262,29 @@ git rm {file} # 在工作区和暂存区中的文件都被删除
 
    ```bash
    git rm --cashed {file}
-   git commit -am "delete {file}
+   git commit -am "delete {file}""
    ```
 
-
 ## 九、Github 的使用和远程仓库操作
+
+1. 在本地创建 **SSH密钥**
+
+   > **Tip: **关于 SSH
+   >
+   > SSH（Secure Shell，安全外壳协议）是一种用于加密远程登录和安全网络服务的协议，通过加密和认证机制保护数据传输安全。
+   >
+   > 核心功能：
+   > SSH主要用于加密本地机器与远程服务器之间的通信，确保数据在传输过程中不被窃取或篡改。它替代了不安全的Telnet协议，广泛应用于服务器管理、文件传输等场景。 ‌
+   >
+   > 工作原理：
+   > SSH基于C/S架构，交互流程包括：
+   >
+   > 建立连接：客户端与服务器握手。
+   > 版本号协商：确定协议版本。
+   > **密钥交换**：生成加密密钥。
+   > **用户认证**：通过密码或密钥验证身份。
+   > 会话交互：加密传输命令和数据。
+   > 会话关闭：断开连接
 
 1. github 创建仓库
 
